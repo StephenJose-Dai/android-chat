@@ -99,26 +99,37 @@ public class ScanQRCodeActivity extends WfcBaseActivity {
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if (requestCode == REQUEST_CODE_IMAGE && resultCode == Activity.RESULT_OK) {
+protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    if (requestCode == REQUEST_CODE_IMAGE && resultCode == Activity.RESULT_OK) {
 
-            ArrayList<ImageItem> images = (ArrayList<ImageItem>) data.getSerializableExtra(ImagePicker.EXTRA_RESULT_ITEMS);
-            if (images != null && images.size() > 0) {
-                String path = images.get(0).path;
+        ArrayList<ImageItem> images = (ArrayList<ImageItem>) data.getSerializableExtra(ImagePicker.EXTRA_RESULT_ITEMS);
+        if (images != null && images.size() > 0) {
+            String path = images.get(0).path;
 
-                InputStream is = null;
-                Result result = QRCodeHelper.decodeQR(path);
-                Intent intent = new Intent();
-                if (result == null) {
-                    Toast.makeText(this, "识别二维码失败", Toast.LENGTH_SHORT).show();
-                } else {
-                    intent.putExtra(Intents.Scan.RESULT, result.getText());
-                    setResult(Activity.RESULT_OK, intent);
+            InputStream is = null;
+            Result result = QRCodeHelper.decodeQR(path);
+            Intent intent = new Intent();
+            if (result == null) {
+                Toast.makeText(this, "识别二维码失败", Toast.LENGTH_SHORT).show();
+            } else {
+                String text = result.getText();
+                if (isURL(text)) { // 如果是 URL，就打开链接
+                    intent.setAction(Intent.ACTION_VIEW);
+                    intent.setData(Uri.parse(text));
+                    startActivity(intent);
+                    finish();
+                    return; // 需要在这里返回，不需要再处理结果了。
                 }
-                finish();
+                // 如果不是 URL，就按照原来的输出为文本来处理
+                intent.putExtra(Intents.Scan.RESULT, text);
+                setResult(Activity.RESULT_OK, intent);
             }
-            return;
         }
-        super.onActivityResult(requestCode, resultCode, data);
     }
+    super.onActivityResult(requestCode, resultCode, data);
+}
+
+private boolean isURL(String text) {
+    return Patterns.WEB_URL.matcher(text).matches();
+}
 }
